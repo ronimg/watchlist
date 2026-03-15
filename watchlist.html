@@ -561,7 +561,7 @@ function tmdbItem(r) {
     type: isFilm ? 'film' : 'tv',
     title: isFilm ? r.title : r.name,
     year: isFilm ? (r.release_date||'').slice(0,4) : (r.first_air_date||'').slice(0,4),
-    poster: r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null,
+    poster: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : null,
     synopsis: r.overview || '',
     rating: r.vote_average ? r.vote_average.toFixed(1) : null,
   };
