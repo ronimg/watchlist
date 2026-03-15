@@ -623,7 +623,7 @@ async function addToNotion(item) {
       Type: { select: { name: item.type === 'film' ? 'Film' : 'TV' } },
       Year: { rich_text: [{ text: { content: item.year || '' } }] },
       TMDBId: { number: item.tmdbId },
-      Poster: { url: item.poster || 'https://www.themoviedb.org' },
+      Poster: { url: item.poster ? item.poster.replace('w92', 'w500') : 'https://www.themoviedb.org' },
       Synopsis: { rich_text: [{ text: { content: (item.synopsis||'').slice(0,2000) } }] },
       Status: { select: { name: 'Unwatched' } },
       Added: { date: { start: new Date().toISOString() } },
