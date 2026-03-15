@@ -333,6 +333,30 @@
   }
   .settings-btn:hover { color: var(--text); border-color: var(--border2); }
 
+  .result-item { flex-wrap: wrap; }
+  .result-info { cursor: pointer; user-select: none; }
+  .result-info:hover .result-title { color: var(--accent); }
+  .result-expand {
+    display: none;
+    width: 100%;
+    padding-top: 0.6rem;
+    margin-top: 0.6rem;
+    border-top: 0.5px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .result-expand.open { display: block; }
+  .result-expand .tmdb-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 0.4rem;
+  }
+  .result-expand .tmdb-link:hover { text-decoration: underline; }
+
   /* ── STATES ── */
   .state-msg {
     text-align: center;
@@ -648,15 +672,23 @@ async function runSearch(q) {
         ? `<button class="btn-add added" disabled>Added ✓</button>`
         : `<button class="btn-add" onclick='handleAdd(${JSON.stringify(item).replace(/'/g,"&#39;")}, this)'>+ Add</button>`;
       const meta = [item.year, item.rating ? `★ ${item.rating}` : null].filter(Boolean).join(' · ');
+      const tmdbType = item.type === 'film' ? 'movie' : 'tv';
+      const tmdbUrl = `https://www.themoviedb.org/${tmdbType}/${item.tmdbId}`;
+      const synopsis = item.synopsis ? escHtml(item.synopsis) : 'No synopsis available.';
+      const expandId = `expand-${item.tmdbId}`;
       return `
         <div class="result-item">
           ${posterHtml}
-          <div class="result-info">
+          <div class="result-info" onclick="toggleExpand('${expandId}')">
             <div class="result-title">${escHtml(item.title)}</div>
             <div class="result-meta">${meta}</div>
           </div>
           ${typeBadge}
           ${addBtn}
+          <div class="result-expand" id="${expandId}">
+            ${synopsis}
+            <br><a class="tmdb-link" href="${tmdbUrl}" target="_blank">View on TMDB ↗</a>
+          </div>
         </div>`;
     }).join('');
   } catch(e) {
@@ -736,6 +768,11 @@ function updateListCount() {
 }
 
 // ── HELPERS ───────────────────────────────────────────
+function toggleExpand(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
 function escHtml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
