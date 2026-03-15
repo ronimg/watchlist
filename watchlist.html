@@ -617,6 +617,7 @@ function pageToItem(page) {
 async function addToNotion(item) {
   const body = {
     parent: { database_id: config.notionDb },
+    cover: item.poster ? { type: 'external', external: { url: item.poster } } : undefined,
     properties: {
       Title: { title: [{ text: { content: item.title } }] },
       Type: { select: { name: item.type === 'film' ? 'Film' : 'TV' } },
