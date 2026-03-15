@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0f;
+    --surface: #18181a;
+    --surface2: #222224;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0ede8;
+    --muted: #888580;
+    --accent: #e8c27a;
+    --accent-dim: rgba(232,194,122,0.12);
+    --red: #e05c5c;
+    --green: #5cbe8c;
+    --radius: 10px;
+    --font-serif: 'DM Serif Display', serif;
+    --font-sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 400;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── SETUP SCREEN ── */
+  #setup {
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .setup-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 16px;
+    padding: 2.5rem;
+  }
+  .setup-card h1 {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.3px;
+  }
+  .setup-card .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 2rem;
+  }
+  .field { margin-bottom: 1.25rem; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.9rem;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: monospace;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 0.35rem;
+  }
+  .field .hint a { color: var(--accent); text-decoration: none; }
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #1a1508;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 0.5rem;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .setup-divider {
+    border: none;
+    border-top: 0.5px solid var(--border);
+    margin: 1.75rem 0;
+  }
+  .setup-section-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* ── MAIN APP ── */
+  #app { flex-direction: column; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 0.5px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .topbar h1 {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    flex: 1;
+  }
+  .topbar h1 span { color: var(--accent); font-style: italic; }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 340px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    padding: 0 1.25rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .tab {
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .content { flex: 1; padding: 1.25rem; }
+
+  /* ── SEARCH RESULTS ── */
+  .results-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .result-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.7rem 0.9rem;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+  .result-item:hover { border-color: var(--border2); }
+  .result-poster {
+    width: 38px;
+    height: 56px;
+    border-radius: 5px;
+    object-fit: cover;
+    background: var(--surface2);
+    flex-shrink: 0;
+  }
+  .result-poster.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .result-info { flex: 1; min-width: 0; }
+  .result-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .result-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .badge-film { background: rgba(232,194,122,0.14); color: var(--accent); }
+  .badge-tv { background: rgba(92,190,140,0.14); color: var(--green); }
+
+  .btn-add {
+    background: var(--accent-dim);
+    border: 0.5px solid rgba(232,194,122,0.25);
+    color: var(--accent);
+    border-radius: 7px;
+    padding: 0.35rem 0.7rem;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-add:hover { background: rgba(232,194,122,0.22); }
+  .btn-add:disabled { opacity: 0.4; cursor: default; }
+  .btn-add.added { background: rgba(92,190,140,0.14); border-color: rgba(92,190,140,0.25); color: var(--green); }
+
+  /* ── WATCHLIST ── */
+  .watchlist-empty {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .watchlist-empty p:first-child { font-size: 32px; margin-bottom: 0.5rem; }
+
+  .watchlist-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .watch-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.7rem 0.9rem;
+    transition: border-color 0.15s, opacity 0.2s;
+  }
+  .watch-item.is-watched { opacity: 0.5; }
+  .watch-item:hover { border-color: var(--border2); }
+  .watch-poster {
+    width: 38px;
+    height: 56px;
+    border-radius: 5px;
+    object-fit: cover;
+    background: var(--surface2);
+    flex-shrink: 0;
+  }
+  .watch-info { flex: 1; min-width: 0; }
+  .watch-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .watch-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .btn-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+    color: transparent;
+    font-size: 13px;
+  }
+  .btn-check:hover { border-color: var(--green); color: var(--green); }
+  .btn-check.checked { background: rgba(92,190,140,0.18); border-color: var(--green); color: var(--green); }
+
+  .settings-btn {
+    background: none;
+    border: 0.5px solid var(--border2);
+    color: var(--muted);
+    border-radius: 7px;
+    padding: 0.4rem 0.55rem;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .settings-btn:hover { color: var(--text); border-color: var(--border2); }
+
+  /* ── STATES ── */
+  .state-msg {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.25s ease;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { color: var(--green); }
+  .toast.error { color: var(--red); }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .filter-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .filter-pill {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    border: 0.5px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-pill.active { background: var(--accent-dim); border-color: rgba(232,194,122,0.3); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup" class="screen">
+  <div class="setup-card">
+    <h1>Watchlist</h1>
+    <p class="subtitle">Connect your Notion workspace to get started. This takes one minute and is stored only in your browser.</p>
+
+    <div class="setup-section-title">Notion</div>
+    <div class="field">
+      <label>Integration Token</label>
+      <input type="password" id="notion-token" placeholder="secret_xxxxxxxxxxxx" autocomplete="off">
+      <p class="hint">Create a token at <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a> → New integration → copy the Internal Integration Token.</p>
+    </div>
+    <div class="field">
+      <label>Database ID</label>
+      <input type="text" id="notion-db" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+      <p class="hint">Open your Notion database → Share → Copy link. The 32-char string before the ? is the ID. Make sure you've shared the database with your integration.</p>
+    </div>
+
+    <hr class="setup-divider">
+
+    <div class="setup-section-title">TMDB (optional — uses shared key if blank)</div>
+    <div class="field">
+      <label>TMDB API Key</label>
+      <input type="text" id="tmdb-key" placeholder="Leave blank to use built-in key" autocomplete="off">
+      <p class="hint">Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org/settings/api</a></p>
+    </div>
+
+    <button class="btn-primary" onclick="saveSetup()">Save & open Watchlist</button>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app" class="screen">
+  <div class="topbar">
+    <h1>Watch<span>list</span></h1>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" type="text" id="search-input" placeholder="Search films & TV…" autocomplete="off">
+    </div>
+    <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" id="tab-search" onclick="switchTab('search')">Search</div>
+    <div class="tab" id="tab-list" onclick="switchTab('list')">My list <span id="list-count"></span></div>
+  </div>
+
+  <div class="content">
+    <!-- Search panel -->
+    <div id="panel-search">
+      <div id="search-results" class="results-list">
+        <div class="state-msg">Search for a film or TV show above</div>
+      </div>
+    </div>
+
+    <!-- List panel -->
+    <div id="panel-list" style="display:none;">
+      <div class="filter-row">
+        <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+        <button class="filter-pill" onclick="setFilter('unwatched', this)">To watch</button>
+        <button class="filter-pill" onclick="setFilter('watched', this)">Watched</button>
+        <button class="filter-pill" onclick="setFilter('film', this)">Films</button>
+        <button class="filter-pill" onclick="setFilter('tv', this)">TV</button>
+      </div>
+      <div id="watchlist-items" class="watchlist-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TMDB_FALLBACK = ''; // users provide their own key — see setup
+
+let config = {};
+let watchlist = [];
+let activeFilter = 'all';
+let searchTimer = null;
+let addedIds = new Set();
+
+function loadConfig() {
+  const raw = localStorage.getItem('watchlist_config');
+  if (raw) { config = JSON.parse(raw); return true; }
+  return false;
+}
+
+function saveSetup() {
+  const token = document.getElementById('notion-token').value.trim();
+  const db = document.getElementById('notion-db').value.trim().replace(/-/g,'');
+  const tmdb = document.getElementById('tmdb-key').value.trim();
+  if (!token || !db) { showToast('Please fill in your Notion token and database ID', 'error'); return; }
+  config = { notionToken: token, notionDb: db, tmdbKey: tmdb };
+  localStorage.setItem('watchlist_config', JSON.stringify(config));
+  startApp();
+}
+
+function openSettings() {
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('setup').classList.add('active');
+  if (config.notionToken) document.getElementById('notion-token').value = config.notionToken;
+  if (config.notionDb) document.getElementById('notion-db').value = config.notionDb;
+  if (config.tmdbKey) document.getElementById('tmdb-key').value = config.tmdbKey;
+}
+
+function startApp() {
+  document.getElementById('setup').classList.remove('active');
+  document.getElementById('app').classList.add('active');
+  loadWatchlist();
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+  document.getElementById('panel-search').style.display = tab === 'search' ? 'block' : 'none';
+  document.getElementById('panel-list').style.display = tab === 'list' ? 'block' : 'none';
+  if (tab === 'list') renderWatchlist();
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderWatchlist();
+}
+
+// ── TMDB ──────────────────────────────────────────────
+async function searchTMDB(query) {
+  const key = config.tmdbKey || TMDB_FALLBACK;
+  if (!key) {
+    showToast('Add a TMDB API key in settings to search', 'error');
+    return [];
+  }
+  const url = `https://api.themoviedb.org/3/search/multi?api_key=${key}&query=${encodeURIComponent(query)}&include_adult=false`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv').slice(0, 8);
+}
+
+function tmdbItem(r) {
+  const isFilm = r.media_type === 'movie';
+  return {
+    tmdbId: r.id,
+    type: isFilm ? 'film' : 'tv',
+    title: isFilm ? r.title : r.name,
+    year: isFilm ? (r.release_date||'').slice(0,4) : (r.first_air_date||'').slice(0,4),
+    poster: r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null,
+    synopsis: r.overview || '',
+    rating: r.vote_average ? r.vote_average.toFixed(1) : null,
+  };
+}
+
+// ── NOTION ────────────────────────────────────────────
+async function notionFetch(path, method, body) {
+  const res = await fetch(`https://api.notion.com/v1${path}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${config.notionToken}`,
+      'Notion-Version': '2022-06-28',
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Notion error ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadWatchlist() {
+  try {
+    const data = await notionFetch(`/databases/${config.notionDb}/query`, 'POST', {
+      sorts: [{ property: 'Added', direction: 'descending' }]
+    });
+    watchlist = (data.results || []).map(pageToItem);
+    addedIds = new Set(watchlist.map(w => String(w.tmdbId)));
+    updateListCount();
+    renderWatchlist();
+  } catch(e) {
+    showToast('Could not load from Notion: ' + e.message, 'error');
+  }
+}
+
+function pageToItem(page) {
+  const p = page.properties;
+  const title = p.Title?.title?.[0]?.plain_text || '';
+  return {
+    notionId: page.id,
+    tmdbId: p.TMDBId?.number,
+    title,
+    type: p.Type?.select?.name || 'film',
+    year: p.Year?.rich_text?.[0]?.plain_text || '',
+    poster: p.Poster?.url || null,
+    synopsis: p.Synopsis?.rich_text?.[0]?.plain_text || '',
+    watched: p.Status?.select?.name === 'Watched',
+  };
+}
+
+async function addToNotion(item) {
+  const body = {
+    parent: { database_id: config.notionDb },
+    properties: {
+      Title: { title: [{ text: { content: item.title } }] },
+      Type: { select: { name: item.type === 'film' ? 'Film' : 'TV' } },
+      Year: { rich_text: [{ text: { content: item.year || '' } }] },
+      TMDBId: { number: item.tmdbId },
+      Poster: { url: item.poster || 'https://www.themoviedb.org' },
+      Synopsis: { rich_text: [{ text: { content: (item.synopsis||'').slice(0,2000) } }] },
+      Status: { select: { name: 'Unwatched' } },
+      Added: { date: { start: new Date().toISOString() } },
+    }
+  };
+  return notionFetch('/pages', 'POST', body);
+}
+
+async function toggleWatched(item) {
+  const newStatus = item.watched ? 'Unwatched' : 'Watched';
+  await notionFetch(`/pages/${item.notionId}`, 'PATCH', {
+    properties: { Status: { select: { name: newStatus } } }
+  });
+  item.watched = !item.watched;
+  renderWatchlist();
+}
+
+// ── SEARCH UI ─────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  const q = this.value.trim();
+  if (!q) {
+    document.getElementById('search-results').innerHTML = '<div class="state-msg">Search for a film or TV show above</div>';
+    return;
+  }
+  document.getElementById('search-results').innerHTML = '<div class="state-msg"><span class="spinner"></span></div>';
+  searchTimer = setTimeout(() => runSearch(q), 400);
+});
+
+async function runSearch(q) {
+  try {
+    const results = await searchTMDB(q);
+    if (!results.length) {
+      document.getElementById('search-results').innerHTML = '<div class="state-msg">No results found</div>';
+      return;
+    }
+    document.getElementById('search-results').innerHTML = results.map(r => {
+      const item = tmdbItem(r);
+      const isAdded = addedIds.has(String(item.tmdbId));
+      const posterHtml = item.poster
+        ? `<img class="result-poster" src="${item.poster}" alt="" loading="lazy">`
+        : `<div class="result-poster placeholder">🎬</div>`;
+      const typeBadge = item.type === 'film'
+        ? `<span class="badge badge-film">Film</span>`
+        : `<span class="badge badge-tv">TV</span>`;
+      const addBtn = isAdded
+        ? `<button class="btn-add added" disabled>Added ✓</button>`
+        : `<button class="btn-add" onclick='handleAdd(${JSON.stringify(item).replace(/'/g,"&#39;")}, this)'>+ Add</button>`;
+      const meta = [item.year, item.rating ? `★ ${item.rating}` : null].filter(Boolean).join(' · ');
+      return `
+        <div class="result-item">
+          ${posterHtml}
+          <div class="result-info">
+            <div class="result-title">${escHtml(item.title)}</div>
+            <div class="result-meta">${meta}</div>
+          </div>
+          ${typeBadge}
+          ${addBtn}
+        </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('search-results').innerHTML = `<div class="state-msg">Search failed: ${e.message}</div>`;
+  }
+}
+
+async function handleAdd(item, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const page = await addToNotion(item);
+    item.notionId = page.id;
+    item.watched = false;
+    watchlist.unshift(item);
+    addedIds.add(String(item.tmdbId));
+    btn.className = 'btn-add added';
+    btn.textContent = 'Added ✓';
+    updateListCount();
+    showToast(`"${item.title}" added to your list`, 'success');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '+ Add';
+    showToast('Failed to add: ' + e.message, 'error');
+  }
+}
+
+// ── WATCHLIST UI ──────────────────────────────────────
+function renderWatchlist() {
+  const container = document.getElementById('watchlist-items');
+  let items = watchlist;
+  if (activeFilter === 'watched') items = items.filter(i => i.watched);
+  else if (activeFilter === 'unwatched') items = items.filter(i => !i.watched);
+  else if (activeFilter === 'film') items = items.filter(i => i.type === 'film');
+  else if (activeFilter === 'tv') items = items.filter(i => i.type === 'tv');
+
+  if (!items.length) {
+    container.innerHTML = `<div class="watchlist-empty"><p>🎬</p><p>${watchlist.length ? 'Nothing matches this filter' : 'Your list is empty — search for something to add'}</p></div>`;
+    return;
+  }
+  container.innerHTML = items.map(item => {
+    const posterHtml = item.poster
+      ? `<img class="watch-poster" src="${item.poster}" alt="" loading="lazy">`
+      : `<div class="watch-poster" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🎬</div>`;
+    const typeBadge = item.type === 'film'
+      ? `<span class="badge badge-film">Film</span>`
+      : `<span class="badge badge-tv">TV</span>`;
+    const checkCls = item.watched ? 'btn-check checked' : 'btn-check';
+    const checkIcon = item.watched ? '✓' : '';
+    return `
+      <div class="watch-item ${item.watched ? 'is-watched' : ''}">
+        ${posterHtml}
+        <div class="watch-info">
+          <div class="watch-title">${escHtml(item.title)}</div>
+          <div class="watch-meta">${[item.year, item.type === 'film' ? 'Film' : 'TV'].filter(Boolean).join(' · ')}</div>
+        </div>
+        ${typeBadge}
+        <button class="${checkCls}" onclick="handleToggle('${item.notionId}')" title="${item.watched ? 'Mark unwatched' : 'Mark watched'}">${checkIcon}</button>
+      </div>`;
+  }).join('');
+}
+
+async function handleToggle(notionId) {
+  const item = watchlist.find(i => i.notionId === notionId);
+  if (!item) return;
+  try {
+    await toggleWatched(item);
+    showToast(item.watched ? `Marked as watched` : `Moved back to unwatched`, 'success');
+  } catch(e) {
+    showToast('Update failed: ' + e.message, 'error');
+  }
+}
+
+function updateListCount() {
+  const unwatched = watchlist.filter(i => !i.watched).length;
+  document.getElementById('list-count').textContent = unwatched ? `(${unwatched})` : '';
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer = null;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── INIT ──────────────────────────────────────────────
+if (loadConfig()) {
+  startApp();
+} else {
+  document.getElementById('setup').classList.add('active');
+}
+</script>
+</body>
+</html>
