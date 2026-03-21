@@ -606,7 +606,7 @@ function pageToItem(page) {
     notionId: page.id,
     tmdbId: p.TMDBId?.number,
     title,
-    type: p.Type?.select?.name || 'film',
+    type: p.Type?.select?.name === 'Film' ? 'film' : 'tv',
     year: p.Year?.rich_text?.[0]?.plain_text || '',
     poster: p.Poster?.url || null,
     synopsis: p.Synopsis?.rich_text?.[0]?.plain_text || '',
