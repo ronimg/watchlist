@@ -582,6 +582,7 @@ async function fetchCredits(tmdbId, type) {
 }
 
 
+function tmdbItem(r) {
   const isFilm = r.media_type === 'movie';
   return {
     tmdbId: r.id,
