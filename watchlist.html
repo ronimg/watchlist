@@ -615,10 +615,17 @@ async function notionFetch(path, method, body) {
 
 async function loadWatchlist() {
   try {
-    const data = await notionFetch(`/databases/${config.notionDb}/query`, 'POST', {
-      sorts: [{ property: 'Added', direction: 'descending' }]
-    });
-    watchlist = (data.results || []).map(pageToItem);
+    let results = [];
+    let cursor = undefined;
+    while (true) {
+      const body = { sorts: [{ property: 'Added', direction: 'descending' }] };
+      if (cursor) body.start_cursor = cursor;
+      const data = await notionFetch(`/databases/${config.notionDb}/query`, 'POST', body);
+      results = results.concat(data.results || []);
+      if (data.has_more) cursor = data.next_cursor;
+      else break;
+    }
+    watchlist = results.map(pageToItem);
     addedIds = new Set(watchlist.map(w => String(w.tmdbId)));
     updateListCount();
     renderWatchlist();
