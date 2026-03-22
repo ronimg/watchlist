@@ -618,6 +618,8 @@ let config = {};
 let watchlist = [];
 let activeFilter = 'all';
 let activeView = 'list';
+let activeTab = 'search';
+let listQuery = '';
 let searchTimer = null;
 let addedIds = new Set();
 
@@ -652,11 +654,22 @@ function startApp() {
 }
 
 function switchTab(tab) {
+  activeTab = tab;
   document.getElementById('tab-search').classList.toggle('active', tab === 'search');
   document.getElementById('tab-list').classList.toggle('active', tab === 'list');
   document.getElementById('panel-search').style.display = tab === 'search' ? 'block' : 'none';
   document.getElementById('panel-list').style.display = tab === 'list' ? 'block' : 'none';
-  if (tab === 'list') renderWatchlist();
+  const input = document.getElementById('search-input');
+  if (tab === 'list') {
+    input.placeholder = 'Filter my list…';
+    input.value = listQuery;
+    renderWatchlist();
+  } else {
+    input.placeholder = 'Search films & TV…';
+    input.value = '';
+    if (!listQuery) return;
+    document.getElementById('search-results').innerHTML = '<div class="state-msg">Search for a film or TV show above</div>';
+  }
 }
 
 function setFilter(f, el) {
@@ -810,6 +823,12 @@ async function toggleWatched(item) {
 document.getElementById('search-input').addEventListener('input', function() {
   clearTimeout(searchTimer);
   const q = this.value.trim();
+  if (activeTab === 'list') {
+    listQuery = q;
+    renderWatchlist();
+    updateListCount();
+    return;
+  }
   if (!q) {
     document.getElementById('search-results').innerHTML = '<div class="state-msg">Search for a film or TV show above</div>';
     return;
@@ -896,6 +915,19 @@ function renderWatchlist() {
     container.innerHTML = `<div class="watchlist-empty"><p>🎬</p><p>${watchlist.length ? 'Nothing matches this filter' : 'Your list is empty — search for something to add'}</p></div>`;
     return;
   }
+  if (listQuery) {
+    const q = listQuery.toLowerCase();
+    items = items.filter(i =>
+      i.title.toLowerCase().includes(q) ||
+      (i.directors || []).some(d => d.toLowerCase().includes(q)) ||
+      (i.cast || []).some(c => c.toLowerCase().includes(q))
+    );
+  }
+  if (!items.length) {
+    container.className = 'watchlist-list';
+    container.innerHTML = `<div class="watchlist-empty"><p>🔍</p><p>No titles match "${escHtml(listQuery)}"</p></div>`;
+    return;
+  }
 
   if (activeView === 'grid') {
     container.className = 'grid-list';
@@ -969,13 +1001,20 @@ async function handleToggle(notionId) {
 }
 
 function updateListCount() {
-  let count;
-  if (activeFilter === 'watched') count = watchlist.filter(i => i.watched).length;
-  else if (activeFilter === 'unwatched') count = watchlist.filter(i => !i.watched).length;
-  else if (activeFilter === 'film') count = watchlist.filter(i => i.type === 'film').length;
-  else if (activeFilter === 'tv') count = watchlist.filter(i => i.type === 'tv').length;
-  else count = watchlist.length;
-  document.getElementById('list-count').textContent = count ? `(${count})` : '';
+  let items = watchlist;
+  if (activeFilter === 'watched') items = items.filter(i => i.watched);
+  else if (activeFilter === 'unwatched') items = items.filter(i => !i.watched);
+  else if (activeFilter === 'film') items = items.filter(i => i.type === 'film');
+  else if (activeFilter === 'tv') items = items.filter(i => i.type === 'tv');
+  if (listQuery) {
+    const q = listQuery.toLowerCase();
+    items = items.filter(i =>
+      i.title.toLowerCase().includes(q) ||
+      (i.directors || []).some(d => d.toLowerCase().includes(q)) ||
+      (i.cast || []).some(c => c.toLowerCase().includes(q))
+    );
+  }
+  document.getElementById('list-count').textContent = items.length ? `(${items.length})` : '';
 }
 
 // ── HELPERS ───────────────────────────────────────────
