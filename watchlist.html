@@ -413,6 +413,102 @@
     transition: all 0.15s;
   }
   .filter-pill.active { background: var(--accent-dim); border-color: rgba(232,194,122,0.3); color: var(--accent); }
+
+  .view-toggle { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+  .view-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 0.5px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .view-btn.active { background: var(--accent-dim); border-color: rgba(232,194,122,0.3); color: var(--accent); }
+
+  .grid-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .grid-card {
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    transition: border-color 0.15s;
+  }
+  .grid-card:hover { border-color: var(--border2); }
+  .grid-poster {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    display: block;
+    background: var(--surface2);
+  }
+  .grid-poster-placeholder {
+    width: 100%;
+    aspect-ratio: 2/3;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .grid-strip {
+    padding: 6px 7px 7px;
+    border-top: 0.5px solid var(--border);
+  }
+  .grid-title {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .grid-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .grid-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .grid-year { font-size: 9px; color: var(--muted); white-space: nowrap; }
+  .grid-dot { font-size: 9px; color: var(--muted); opacity: 0.4; }
+  .grid-badge {
+    font-size: 8px;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .grid-badge-film { background: rgba(232,194,122,0.14); color: var(--accent); }
+  .grid-badge-tv { background: rgba(92,190,140,0.14); color: var(--green); }
+  .grid-check {
+    width: 17px; height: 17px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    color: transparent;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .grid-check.checked { background: rgba(92,190,140,0.18); border-color: var(--green); color: var(--green); }
 </style>
 </head>
 <body>
@@ -488,6 +584,14 @@
         <button class="filter-pill" onclick="setFilter('watched', this)">Watched</button>
         <button class="filter-pill" onclick="setFilter('film', this)">Films</button>
         <button class="filter-pill" onclick="setFilter('tv', this)">TV</button>
+        <div class="view-toggle">
+          <button class="view-btn active" id="view-btn-list" onclick="setView('list')" title="List view">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="0" y="0" width="13" height="2" rx="1" fill="currentColor"/><rect x="0" y="5" width="13" height="2" rx="1" fill="currentColor"/><rect x="0" y="10" width="13" height="2" rx="1" fill="currentColor"/></svg>
+          </button>
+          <button class="view-btn" id="view-btn-grid" onclick="setView('grid')" title="Grid view">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="0" y="0" width="5" height="5" rx="1" fill="currentColor"/><rect x="8" y="0" width="5" height="5" rx="1" fill="currentColor"/><rect x="0" y="8" width="5" height="5" rx="1" fill="currentColor"/><rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor"/></svg>
+          </button>
+        </div>
       </div>
       <div id="watchlist-items" class="watchlist-list"></div>
     </div>
@@ -502,6 +606,7 @@ const TMDB_FALLBACK = ''; // users provide their own key — see setup
 let config = {};
 let watchlist = [];
 let activeFilter = 'all';
+let activeView = 'list';
 let searchTimer = null;
 let addedIds = new Set();
 
@@ -551,7 +656,14 @@ function setFilter(f, el) {
   updateListCount();
 }
 
-// ── TMDB ──────────────────────────────────────────────
+function setView(view) {
+  activeView = view;
+  document.getElementById('view-btn-list').classList.toggle('active', view === 'list');
+  document.getElementById('view-btn-grid').classList.toggle('active', view === 'grid');
+  renderWatchlist();
+}
+
+
 async function searchTMDB(query) {
   const key = config.tmdbKey || TMDB_FALLBACK;
   if (!key) {
@@ -767,29 +879,60 @@ function renderWatchlist() {
   else if (activeFilter === 'tv') items = items.filter(i => i.type === 'tv');
 
   if (!items.length) {
+    container.className = 'watchlist-list';
     container.innerHTML = `<div class="watchlist-empty"><p>🎬</p><p>${watchlist.length ? 'Nothing matches this filter' : 'Your list is empty — search for something to add'}</p></div>`;
     return;
   }
-  container.innerHTML = items.map(item => {
-    const posterHtml = item.poster
-      ? `<img class="watch-poster" src="${item.poster}" alt="" loading="lazy">`
-      : `<div class="watch-poster" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🎬</div>`;
-    const typeBadge = item.type === 'film'
-      ? `<span class="badge badge-film">Film</span>`
-      : `<span class="badge badge-tv">TV</span>`;
-    const checkCls = item.watched ? 'btn-check checked' : 'btn-check';
-    const checkIcon = item.watched ? '✓' : '';
-    return `
-      <div class="watch-item ${item.watched ? 'is-watched' : ''}">
-        ${posterHtml}
-        <div class="watch-info">
-          <div class="watch-title">${escHtml(item.title)}</div>
-          <div class="watch-meta">${[item.year, item.type === 'film' ? 'Film' : 'TV'].filter(Boolean).join(' · ')}</div>
-        </div>
-        ${typeBadge}
-        <button class="${checkCls}" onclick="handleToggle('${item.notionId}')" title="${item.watched ? 'Mark unwatched' : 'Mark watched'}">${checkIcon}</button>
-      </div>`;
-  }).join('');
+
+  if (activeView === 'grid') {
+    container.className = 'grid-list';
+    container.innerHTML = items.map(item => {
+      const posterHtml = item.poster
+        ? `<img class="grid-poster" src="${item.poster}" alt="" loading="lazy">`
+        : `<div class="grid-poster-placeholder">🎬</div>`;
+      const badgeCls = item.type === 'film' ? 'grid-badge-film' : 'grid-badge-tv';
+      const badgeLabel = item.type === 'film' ? 'Film' : 'TV';
+      const checkCls = item.watched ? 'grid-check checked' : 'grid-check';
+      const checkIcon = item.watched ? '✓' : '';
+      return `
+        <div class="grid-card">
+          ${posterHtml}
+          <div class="grid-strip">
+            <div class="grid-title">${escHtml(item.title)}</div>
+            <div class="grid-foot">
+              <div class="grid-meta">
+                <span class="grid-year">${item.year || ''}</span>
+                <span class="grid-dot">·</span>
+                <span class="grid-badge ${badgeCls}">${badgeLabel}</span>
+              </div>
+              <button class="${checkCls}" onclick="handleToggle('${item.notionId}')" title="${item.watched ? 'Mark unwatched' : 'Mark watched'}">${checkIcon}</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  } else {
+    container.className = 'watchlist-list';
+    container.innerHTML = items.map(item => {
+      const posterHtml = item.poster
+        ? `<img class="watch-poster" src="${item.poster}" alt="" loading="lazy">`
+        : `<div class="watch-poster" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🎬</div>`;
+      const typeBadge = item.type === 'film'
+        ? `<span class="badge badge-film">Film</span>`
+        : `<span class="badge badge-tv">TV</span>`;
+      const checkCls = item.watched ? 'btn-check checked' : 'btn-check';
+      const checkIcon = item.watched ? '✓' : '';
+      return `
+        <div class="watch-item ${item.watched ? 'is-watched' : ''}">
+          ${posterHtml}
+          <div class="watch-info">
+            <div class="watch-title">${escHtml(item.title)}</div>
+            <div class="watch-meta">${[item.year, item.type === 'film' ? 'Film' : 'TV'].filter(Boolean).join(' · ')}</div>
+          </div>
+          ${typeBadge}
+          <button class="${checkCls}" onclick="handleToggle('${item.notionId}')" title="${item.watched ? 'Mark unwatched' : 'Mark watched'}">${checkIcon}</button>
+        </div>`;
+    }).join('');
+  }
 }
 
 async function handleToggle(notionId) {
