@@ -547,6 +547,7 @@ function setFilter(f, el) {
   document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   renderWatchlist();
+  updateListCount();
 }
 
 // ── TMDB ──────────────────────────────────────────────
@@ -617,18 +618,14 @@ async function loadWatchlist() {
   try {
     let results = [];
     let cursor = undefined;
-    let page = 0;
     while (true) {
       const body = { sorts: [{ property: 'Added', direction: 'descending' }] };
       if (cursor) body.start_cursor = cursor;
       const data = await notionFetch(`/databases/${config.notionDb}/query`, 'POST', body);
-      page++;
-      console.log(`Page ${page}: got ${data.results?.length} results, has_more=${data.has_more}, next_cursor=${data.next_cursor}`);
       results = results.concat(data.results || []);
       if (data.has_more) cursor = data.next_cursor;
       else break;
     }
-    console.log(`Total loaded: ${results.length}`);
     watchlist = results.map(pageToItem);
     addedIds = new Set(watchlist.map(w => String(w.tmdbId)));
     updateListCount();
@@ -806,8 +803,13 @@ async function handleToggle(notionId) {
 }
 
 function updateListCount() {
-  const unwatched = watchlist.filter(i => !i.watched).length;
-  document.getElementById('list-count').textContent = unwatched ? `(${unwatched})` : '';
+  let count;
+  if (activeFilter === 'watched') count = watchlist.filter(i => i.watched).length;
+  else if (activeFilter === 'unwatched') count = watchlist.filter(i => !i.watched).length;
+  else if (activeFilter === 'film') count = watchlist.filter(i => i.type === 'film').length;
+  else if (activeFilter === 'tv') count = watchlist.filter(i => i.type === 'tv').length;
+  else count = watchlist.length;
+  document.getElementById('list-count').textContent = count ? `(${count})` : '';
 }
 
 // ── HELPERS ───────────────────────────────────────────
