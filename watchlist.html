@@ -433,6 +433,9 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
+  @media (min-width: 600px) { .grid-list { grid-template-columns: repeat(5, 1fr); } }
+  @media (min-width: 900px) { .grid-list { grid-template-columns: repeat(7, 1fr); } }
+  @media (min-width: 1200px) { .grid-list { grid-template-columns: repeat(9, 1fr); } }
   .grid-card {
     border-radius: 8px;
     overflow: hidden;
