@@ -340,23 +340,31 @@
   .result-expand {
     display: none;
     width: 100%;
-    padding-top: 0.6rem;
-    margin-top: 0.6rem;
+    padding-top: 0.7rem;
+    margin-top: 0.7rem;
     border-top: 0.5px solid var(--border);
     font-size: 13px;
     color: var(--muted);
     line-height: 1.6;
   }
   .result-expand.open { display: block; }
+  .expand-synopsis { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 0.6rem; }
+  .expand-row { display: flex; gap: 8px; align-items: baseline; margin-bottom: 0.5rem; }
+  .expand-label { font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: #555; flex-shrink: 0; width: 60px; }
+  .expand-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+  .expand-pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,0.05); color: #c0bdb8; border: 0.5px solid rgba(255,255,255,0.09); }
   .result-expand .tmdb-link {
     color: var(--accent);
     text-decoration: none;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     display: inline-block;
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
   }
   .result-expand .tmdb-link:hover { text-decoration: underline; }
+  .watch-item { flex-wrap: wrap; }
+  .watch-info { cursor: pointer; user-select: none; }
+  .watch-info:hover .watch-title { color: var(--accent); }
 
   /* ── STATES ── */
   .state-msg {
@@ -763,6 +771,8 @@ function pageToItem(page) {
     poster: p.Poster?.url || null,
     synopsis: p.Synopsis?.rich_text?.[0]?.plain_text || '',
     watched: p.Status?.select?.name === 'Watched',
+    directors: (p.Director?.multi_select || []).map(t => t.name),
+    cast: (p.Cast?.multi_select || []).map(t => t.name),
   };
 }
 
@@ -835,15 +845,15 @@ async function runSearch(q) {
       return `
         <div class="result-item">
           ${posterHtml}
-          <div class="result-info" onclick="toggleExpand('${expandId}')">
+          <div class="result-info" onclick="toggleExpand('${expandId}', ${item.tmdbId}, '${item.type}')">
             <div class="result-title">${escHtml(item.title)}</div>
             <div class="result-meta">${meta}</div>
           </div>
           ${typeBadge}
           ${addBtn}
           <div class="result-expand" id="${expandId}">
-            ${synopsis}
-            <br><a class="tmdb-link" href="${tmdbUrl}" target="_blank">View on TMDB ↗</a>
+            <p class="expand-synopsis">${synopsis}</p>
+            <div class="expand-credits-loading"><span class="spinner"></span></div>
           </div>
         </div>`;
     }).join('');
@@ -924,15 +934,24 @@ function renderWatchlist() {
         : `<span class="badge badge-tv">TV</span>`;
       const checkCls = item.watched ? 'btn-check checked' : 'btn-check';
       const checkIcon = item.watched ? '✓' : '';
+      const expandId = `list-expand-${item.notionId}`;
+      const tmdbType = item.type === 'film' ? 'movie' : 'tv';
+      const tmdbUrl = `https://www.themoviedb.org/${tmdbType}/${item.tmdbId}`;
+      const synopsis = item.synopsis ? `<p class="expand-synopsis">${escHtml(item.synopsis)}</p>` : '';
+      const credits = creditsHtml(item.directors || [], item.cast || [], item.type, item.tmdbId, tmdbUrl);
       return `
         <div class="watch-item ${item.watched ? 'is-watched' : ''}">
           ${posterHtml}
-          <div class="watch-info">
+          <div class="watch-info" onclick="toggleListExpand('${expandId}')">
             <div class="watch-title">${escHtml(item.title)}</div>
             <div class="watch-meta">${[item.year, item.type === 'film' ? 'Film' : 'TV'].filter(Boolean).join(' · ')}</div>
           </div>
           ${typeBadge}
           <button class="${checkCls}" onclick="handleToggle('${item.notionId}')" title="${item.watched ? 'Mark unwatched' : 'Mark watched'}">${checkIcon}</button>
+          <div class="result-expand" id="${expandId}">
+            ${synopsis}
+            ${credits}
+          </div>
         </div>`;
     }).join('');
   }
@@ -987,7 +1006,42 @@ async function refreshAllCredits() {
   showToast('All entries refreshed', 'success');
 }
 
-function toggleExpand(id) {
+function creditsHtml(directors, cast, type, tmdbId, tmdbUrl) {
+  const dirLabel = type === 'tv' ? 'Created by' : 'Director';
+  const dirPills = directors.length
+    ? directors.map(d => `<span class="expand-pill">${escHtml(d)}</span>`).join('')
+    : '<span class="expand-pill" style="opacity:0.4;">Unknown</span>';
+  const castPills = cast.length
+    ? cast.map(c => `<span class="expand-pill">${escHtml(c)}</span>`).join('')
+    : '<span class="expand-pill" style="opacity:0.4;">Unknown</span>';
+  return `
+    <div class="expand-row"><span class="expand-label">${dirLabel}</span><div class="expand-pills">${dirPills}</div></div>
+    <div class="expand-row"><span class="expand-label">Cast</span><div class="expand-pills">${castPills}</div></div>
+    <a class="tmdb-link" href="${tmdbUrl}" target="_blank">View on TMDB ↗</a>`;
+}
+
+async function toggleExpand(id, tmdbId, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  el.classList.toggle('open');
+  if (!isOpen && tmdbId && !el.dataset.loaded) {
+    el.dataset.loaded = '1';
+    const loadingEl = el.querySelector('.expand-credits-loading');
+    if (loadingEl) {
+      try {
+        const { directors, cast } = await fetchCredits(tmdbId, type);
+        const tmdbType = type === 'film' ? 'movie' : 'tv';
+        const tmdbUrl = `https://www.themoviedb.org/${tmdbType}/${tmdbId}`;
+        loadingEl.outerHTML = creditsHtml(directors, cast, type, tmdbId, tmdbUrl);
+      } catch(e) {
+        loadingEl.outerHTML = `<a class="tmdb-link" href="https://www.themoviedb.org" target="_blank">View on TMDB ↗</a>`;
+      }
+    }
+  }
+}
+
+function toggleListExpand(id) {
   const el = document.getElementById(id);
   if (el) el.classList.toggle('open');
 }
